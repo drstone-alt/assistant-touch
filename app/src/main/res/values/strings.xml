@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Assistant Touch</string>
+    <string name="service_desc">Shows a floating ball: tap = Home, hold = Recent apps, double tap = Lock screen, double tap and hold = Power menu.</string>
+</resources>

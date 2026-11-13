@@ -1,0 +1,12 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.assistivetouch.app'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.assistivetouch.app'
+        minSdk 31
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+}
