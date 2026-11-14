@@ -1,10 +1,15 @@
 package com.assistivetouch.app;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.KeyguardManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -20,6 +25,25 @@ public class TouchService extends AccessibilityService {
     private WindowManager.LayoutParams lp;
     private final Handler h = new Handler(Looper.getMainLooper());
 
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            String a = i.getAction();
+            if (Intent.ACTION_SCREEN_OFF.equals(a)) {
+                if (ball != null) ball.setVisibility(View.INVISIBLE);
+            } else if (Intent.ACTION_USER_PRESENT.equals(a)) {
+                if (ball != null) ball.setVisibility(View.VISIBLE);
+            } else if (Intent.ACTION_SCREEN_ON.equals(a)) {
+                h.postDelayed(() -> updateVisibility(), 300);
+            }
+        }
+    };
+
+    private void updateVisibility() {
+        if (ball == null) return;
+        KeyguardManager km = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+        ball.setVisibility(km.isKeyguardLocked() ? View.INVISIBLE : View.VISIBLE);
+    }
+
     @Override protected void onServiceConnected() {
         if (ball != null) return;
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -33,12 +57,24 @@ public class TouchService extends AccessibilityService {
         lp.x = 0;
         lp.y = 500;
         wm.addView(ball, lp);
+
+        IntentFilter f = new IntentFilter();
+        f.addAction(Intent.ACTION_SCREEN_OFF);
+        f.addAction(Intent.ACTION_SCREEN_ON);
+        f.addAction(Intent.ACTION_USER_PRESENT);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenReceiver, f, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(screenReceiver, f);
+        }
+        updateVisibility();
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) { }
     @Override public void onInterrupt() { }
 
     @Override public void onDestroy() {
+        try { unregisterReceiver(screenReceiver); } catch (Exception ignored) { }
         if (ball != null && wm != null) { wm.removeView(ball); ball = null; }
         super.onDestroy();
     }
